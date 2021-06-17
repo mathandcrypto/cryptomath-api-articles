@@ -1,0 +1,97 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Article {
+    id  Int @default(autoincrement()) @id
+    title   String
+    abstract    String
+    userId  Int
+    hubs    HubsOnArticles[]
+    tags    TagsOnArticles[]
+    comments    Comment[]
+    votes   Vote[]
+    answerCount Int @default(0)
+    rating  Float?
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @default(now())
+}
+
+model HubLogo {
+    id  Int @default(autoincrement()) @id
+    key String @unique
+    url String
+    hub    Hub   @relation(fields: [hubId], references: [id])
+    hubId  Int
+}
+
+model Hub {
+    id  Int @default(autoincrement()) @id
+    name    String
+    description String?
+    logo    HubLogo?
+    articles    HubsOnArticles[]
+    articlesCount   Int @default(0)
+    tags Tag[]
+    tagsCount   Int @default(0)
+}
+
+model HubsOnArticles {
+    article Article     @relation(fields: [articleId], references: [id])
+    articleId      Int
+    hub   Hub @relation(fields: [hubId], references: [id])
+    hubId  Int
+
+    @@id([articleId, hubId])
+}
+
+model Tag {
+    id  Int @default(autoincrement()) @id
+    name    String
+    description String?
+    articles    TagsOnArticles[]
+    articlesCount   Int @default(0)
+    hub Hub  @relation(fields: [hubId], references: [id])
+    hubId  Int
+}
+
+model TagsOnArticles {
+    article Article @relation(fields: [articleId], references: [id])
+    articleId   Int
+    tag   Tag @relation(fields: [tagId], references: [id])
+    tagId  Int
+
+    @@id([articleId, tagId])
+}
+
+model Comment {
+    id  Int @default(autoincrement()) @id
+    userId  Int
+    article Article @relation(fields: [articleId], references: [id])
+    articleId   Int
+    message String
+    parentCommentId Int?
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @default(now())
+}
+
+enum VoteGrade {
+    EXCELLENT
+    SATISFACTORY
+    MECIOCRE
+    INSUFFICIENT
+    FAILURE
+}
+
+model Vote {
+    id  Int @default(autoincrement()) @id
+    userId  Int
+    grade VoteGrade @default(SATISFACTORY)
+    article Article @relation(fields: [articleId], references: [id])
+    articleId   Int
+}
