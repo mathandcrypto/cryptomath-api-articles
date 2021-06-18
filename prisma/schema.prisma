@@ -16,8 +16,8 @@ model Article {
     tags    TagsOnArticles[]
     comments    Comment[]
     votes   Vote[]
-    answerCount Int @default(0)
-    rating  Float?
+    commentsCount Int @default(0)
+    rating  Float   @default(0)
     createdAt   DateTime @default(now())
     updatedAt   DateTime @default(now())
 }
@@ -76,8 +76,10 @@ model Comment {
     articleId   Int
     message String
     parentCommentId Int?
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @default(now())
+    parentComment   Comment?    @relation("SubComments", fields: [parentCommentId], references: [id])
+    subComments Comment[]   @relation("SubComments")
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @default(now())
 }
 
 enum VoteGrade {
