@@ -1,13 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@providers/prisma/prisma.service';
 import {
-  ArticleFilters,
-  ArticleSorts,
+  ArticlesFilters,
+  ArticlesSorts,
 } from 'cryptomath-api-proto/types/articles';
 import { Article } from './interfaces/article.interface';
 import { Prisma } from '@prisma/client';
 import { ArticlesConfigService } from '@config/articles/config.service';
 import { getOrderDirection } from '@common/helpers/sorts';
+import {
+  getDateTimeFilterCondition,
+  getNumericFilterCondition,
+} from '@common/helpers/filters';
+import { fromUnixTime } from 'date-fns';
 
 @Injectable()
 export class ArticlesService {
@@ -18,7 +23,7 @@ export class ArticlesService {
     private readonly articlesConfigService: ArticlesConfigService,
   ) {}
 
-  protected getWhereInput(filters: ArticleFilters): Prisma.ArticleWhereInput {
+  protected getWhereInput(filters: ArticlesFilters): Prisma.ArticleWhereInput {
     const whereInput = {} as Prisma.ArticleWhereInput;
 
     if (filters.id) {
@@ -58,14 +63,11 @@ export class ArticlesService {
         max: commentsMax,
       } = filters.comments;
 
-      if (commentsEqual) {
-        whereInput.commentsCount = commentsEqual;
-      } else {
-        whereInput.commentsCount = {
-          ...(commentsMin && { gte: commentsMin }),
-          ...(commentsMax && { lte: commentsMax }),
-        };
-      }
+      whereInput.commentsCount = getNumericFilterCondition(
+        commentsEqual,
+        commentsMin,
+        commentsMax,
+      );
     }
 
     if (filters.rating) {
@@ -75,69 +77,62 @@ export class ArticlesService {
         max: ratingMax,
       } = filters.rating;
 
-      if (ratingEqual) {
-        whereInput.rating = ratingEqual;
-      } else {
-        whereInput.rating = {
-          ...(ratingMin && { gte: ratingMin }),
-          ...(ratingMax && { lte: ratingMax }),
-        };
-      }
+      whereInput.rating = getNumericFilterCondition(
+        ratingEqual,
+        ratingMin,
+        ratingMax,
+      );
     }
 
     if (filters.createdAt) {
-      const {
-        equals: createdDate,
-        start: createdAfter,
-        end: createdBefore,
-      } = filters.createdAt;
+      const { start: createdAfter, end: createdBefore } = filters.createdAt;
 
-      if (createdDate) {
-        whereInput.createdAt = createdDate;
-      } else {
-        whereInput.createdAt = {
-          ...(createdAfter && { gte: createdAfter }),
-          ...(createdBefore && { lte: createdBefore }),
-        };
-      }
+      whereInput.createdAt = getDateTimeFilterCondition(
+        createdAfter ? fromUnixTime(createdAfter) : undefined,
+        createdBefore ? fromUnixTime(createdBefore) : undefined,
+      );
     }
 
     return whereInput;
   }
 
-  protected getOrderByInput(sorts: ArticleSorts): Prisma.ArticleOrderByInput {
-    const orderByInput = {} as Prisma.ArticleOrderByInput;
+  protected getOrderByInput(
+    sorts: ArticlesSorts,
+  ): Prisma.ArticleOrderByInput[] {
+    const orderByInput = [] as Prisma.ArticleOrderByInput[];
 
     if (sorts.title) {
       const { direction: titleDirection } = sorts.title;
 
-      orderByInput.title = getOrderDirection(titleDirection);
+      orderByInput.push({ title: getOrderDirection(titleDirection) });
     }
 
-    if (sorts.commentsCount) {
-      const { direction: commentsCountDirection } = sorts.commentsCount;
+    if (sorts.comments) {
+      const { direction: commentsCountDirection } = sorts.comments;
 
-      orderByInput.commentsCount = getOrderDirection(commentsCountDirection);
+      orderByInput.push({
+        commentsCount: getOrderDirection(commentsCountDirection),
+      });
     }
 
     if (sorts.rating) {
       const { direction: ratingDirection } = sorts.rating;
 
-      orderByInput.rating = getOrderDirection(ratingDirection);
+      orderByInput.push({ rating: getOrderDirection(ratingDirection) });
     }
 
     if (sorts.createdAt) {
       const { direction: createdAtDirection } = sorts.createdAt;
 
-      orderByInput.createdAt = getOrderDirection(createdAtDirection);
+      orderByInput.push({ createdAt: getOrderDirection(createdAtDirection) });
     }
 
     return orderByInput;
   }
 
   async findMultiple(
-    filters: ArticleFilters,
-    sorts: ArticleSorts,
+    filters: ArticlesFilters,
+    sorts: ArticlesSorts,
     offset: number,
     limit: number,
   ): Promise<[boolean, number, number, Article[]]> {
@@ -155,7 +150,11 @@ export class ArticlesService {
           include: {
             hubs: {
               include: {
-                hub: true,
+                hub: {
+                  include: {
+                    logo: true,
+                  },
+                },
               },
             },
             tags: {
