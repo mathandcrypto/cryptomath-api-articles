@@ -138,7 +138,10 @@ export class ArticlesService {
   ): Promise<[boolean, number, number, Article[]]> {
     const articlesWhereInput = this.getWhereInput(filters);
     const articlesOrderByInput = this.getOrderByInput(sorts);
-    const take = Math.min(limit, this.articlesConfigService.listMaxLimit);
+    const take = Math.min(
+      limit,
+      this.articlesConfigService.articlesListMaxLimit,
+    );
 
     try {
       const [articles, totalArticles] = await this.prisma.$transaction([

@@ -5,7 +5,11 @@ import { ConfigService } from '@nestjs/config';
 export class ArticlesConfigService {
   constructor(private configService: ConfigService) {}
 
-  get listMaxLimit(): number {
-    return this.configService.get<number>('articles.listMaxLimit');
+  get articlesListMaxLimit(): number {
+    return this.configService.get<number>('articles.articlesListMaxLimit');
+  }
+
+  get hubsListMaxLimit(): number {
+    return this.configService.get<number>('articles.hubsListMaxLimit');
   }
 }
