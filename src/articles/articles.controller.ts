@@ -8,6 +8,10 @@ import {
   FindHubsResponse,
   FindTagsRequest,
   FindTagsResponse,
+  FindHubRequest,
+  FindHubResponse,
+  FindTagRequest,
+  FindTagResponse,
 } from 'cryptomath-api-proto/types/articles';
 import { ArticlesService } from './articles.service';
 import { HubsService } from './hubs.service';
@@ -105,6 +109,38 @@ export class ArticlesController implements ArticlesServiceController {
       limit: skippedTags,
       total: totalTags,
       tags: await this.tagSerializerService.serializeCollection(tags),
+    };
+  }
+
+  async findHub({ hubId }: FindHubRequest): Promise<FindHubResponse> {
+    const [isHubExists, hub] = await this.hubsService.findOne(hubId);
+
+    if (!isHubExists) {
+      return {
+        isHubExists: false,
+        hub: null,
+      };
+    }
+
+    return {
+      isHubExists: true,
+      hub: await this.hubSerializerService.serialize(hub),
+    };
+  }
+
+  async findTag({ tagId }: FindTagRequest): Promise<FindTagResponse> {
+    const [isTagExists, tag] = await this.tagsService.findOne(tagId);
+
+    if (!isTagExists) {
+      return {
+        isTagExists: false,
+        tag: null,
+      };
+    }
+
+    return {
+      isTagExists: true,
+      tag: await this.tagSerializerService.serialize(tag),
     };
   }
 }

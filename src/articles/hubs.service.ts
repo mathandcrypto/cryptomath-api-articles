@@ -121,4 +121,23 @@ export class HubsService {
       return [false, 0, 0, []];
     }
   }
+
+  async findOne(hubId: number): Promise<[boolean, Hub]> {
+    try {
+      const hub = await this.prisma.hub.findUnique({
+        where: { id: hubId },
+        include: { logo: true },
+      });
+
+      if (!hub) {
+        return [false, null];
+      }
+
+      return [true, hub];
+    } catch (error) {
+      this.logger.error(error);
+
+      return [false, null];
+    }
+  }
 }

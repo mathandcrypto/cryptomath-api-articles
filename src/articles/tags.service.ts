@@ -109,4 +109,29 @@ export class TagsService {
       return [false, 0, 0, []];
     }
   }
+
+  async findOne(tagId: number): Promise<[boolean, Tag]> {
+    try {
+      const tag = await this.prisma.tag.findUnique({
+        where: { id: tagId },
+        include: {
+          hub: {
+            include: {
+              logo: true,
+            },
+          },
+        },
+      });
+
+      if (!tag) {
+        return [false, null];
+      }
+
+      return [true, tag];
+    } catch (error) {
+      this.logger.error(error);
+
+      return [false, null];
+    }
+  }
 }
