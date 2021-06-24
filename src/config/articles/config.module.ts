@@ -11,6 +11,7 @@ import { ArticlesConfigService } from './config.service';
       validationSchema: Joi.object({
         ARTICLES_LIST_MAX_LIMIT: Joi.number().min(10).max(50),
         HUBS_LIST_MAX_LIMIT: Joi.number().min(10).max(50),
+        TAGS_LIST_MAX_LIMIT: Joi.number().min(10).max(50),
       }),
     }),
   ],

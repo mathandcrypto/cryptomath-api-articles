@@ -12,4 +12,8 @@ export class ArticlesConfigService {
   get hubsListMaxLimit(): number {
     return this.configService.get<number>('articles.hubsListMaxLimit');
   }
+
+  get tagsListMaxLimit(): number {
+    return this.configService.get<number>('articles.tagsListMaxLimit');
+  }
 }

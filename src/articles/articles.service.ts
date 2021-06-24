@@ -162,7 +162,15 @@ export class ArticlesService {
             },
             tags: {
               include: {
-                tag: true,
+                tag: {
+                  include: {
+                    hub: {
+                      include: {
+                        logo: true,
+                      },
+                    },
+                  },
+                },
               },
             },
           },
