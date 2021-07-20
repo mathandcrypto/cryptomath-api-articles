@@ -1,9 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@providers/prisma/prisma.service';
+import { SearchService } from '@providers/rmq/search/search.service';
 import { HubsFilters, HubsSorts } from 'cryptomath-api-proto/types/articles';
 import { Hub } from './interfaces/hub.interface';
 import { Prisma } from '@prisma/client';
 import { ArticlesConfigService } from '@config/articles/config.service';
+import { InsertDocumentResponse } from 'cryptomath-api-message-types';
 import { getNumericFilterCondition } from '@common/helpers/filters';
 import { getOrderDirection } from '@common/helpers/sorts';
 
@@ -14,6 +16,7 @@ export class HubsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly articlesConfigService: ArticlesConfigService,
+    private readonly searchService: SearchService,
   ) {}
 
   protected getWhereInput(filters: HubsFilters): Prisma.HubWhereInput {
@@ -138,6 +141,64 @@ export class HubsService {
       this.logger.error(error);
 
       return [false, null];
+    }
+  }
+
+  async createHub(name: string, description: string): Promise<[boolean, Hub]> {
+    try {
+      const hub = await this.prisma.hub.create({
+        data: {
+          name,
+          description,
+        },
+      });
+
+      const insertDocumentObservable = this.searchService.insertHubDocument(
+        hub.id,
+        name,
+        description,
+      );
+
+      insertDocumentObservable.subscribe(
+        (response) => this.updateHubSearch(hub.id, response),
+        (error) => {
+          this.logger.error(
+            `Failed to create hub index. Hub id: ${hub.id}. Error: ${error}`,
+          );
+        },
+      );
+
+      return [true, hub];
+    } catch (error) {
+      this.logger.error(error);
+
+      return [false, null];
+    }
+  }
+
+  async updateHubSearch(
+    hubId: number,
+    { isDocumentCreated, documentId }: InsertDocumentResponse,
+  ) {
+    if (!isDocumentCreated) {
+      this.logger.error(
+        `Search index of the hub has not been created. Hub id: ${hubId}`,
+      );
+    }
+
+    try {
+      await this.prisma.hub.update({
+        where: {
+          id: hubId,
+        },
+        data: {
+          searchId: documentId,
+        },
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to update hub search id. Hub id: ${hubId}. Document id: ${documentId}. Error message: ${error.message}`,
+      );
     }
   }
 }

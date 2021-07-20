@@ -1,17 +1,19 @@
 import { Controller } from '@nestjs/common';
 import {
-  ArticlesServiceControllerMethods,
   ArticlesServiceController,
+  ArticlesServiceControllerMethods,
+  CreateHubRequest,
+  CreateHubResponse,
   FindArticlesRequest,
   FindArticlesResponse,
-  FindHubsRequest,
-  FindHubsResponse,
-  FindTagsRequest,
-  FindTagsResponse,
   FindHubRequest,
   FindHubResponse,
+  FindHubsRequest,
+  FindHubsResponse,
   FindTagRequest,
   FindTagResponse,
+  FindTagsRequest,
+  FindTagsResponse,
 } from 'cryptomath-api-proto/types/articles';
 import { ArticlesService } from './articles.service';
 import { HubsService } from './hubs.service';
@@ -141,6 +143,28 @@ export class ArticlesController implements ArticlesServiceController {
     return {
       isTagExists: true,
       tag: await this.tagSerializerService.serialize(tag),
+    };
+  }
+
+  async creteHub({
+    name,
+    description,
+  }: CreateHubRequest): Promise<CreateHubResponse> {
+    const [createHubStatus, hub] = await this.hubsService.createHub(
+      name,
+      description,
+    );
+
+    if (!createHubStatus) {
+      return {
+        isHubCreated: false,
+        hub: null,
+      };
+    }
+
+    return {
+      isHubCreated: true,
+      hub: await this.hubSerializerService.serialize(hub),
     };
   }
 }
