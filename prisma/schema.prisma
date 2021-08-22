@@ -9,6 +9,7 @@ generator client {
 
 model Article {
     id  Int @default(autoincrement()) @id
+    searchId    String?
     title   String
     abstract    String
     userId  Int
@@ -16,8 +17,8 @@ model Article {
     tags    TagsOnArticles[]
     comments    Comment[]
     votes   Vote[]
-    answerCount Int @default(0)
-    rating  Float?
+    commentsCount Int @default(0)
+    rating  Int   @default(0)
     createdAt   DateTime @default(now())
     updatedAt   DateTime @default(now())
 }
@@ -32,8 +33,9 @@ model HubLogo {
 
 model Hub {
     id  Int @default(autoincrement()) @id
+    searchId    String?
     name    String
-    description String?
+    description String
     logo    HubLogo?
     articles    HubsOnArticles[]
     articlesCount   Int @default(0)
@@ -52,8 +54,9 @@ model HubsOnArticles {
 
 model Tag {
     id  Int @default(autoincrement()) @id
+    searchId    String?
     name    String
-    description String?
+    description String
     articles    TagsOnArticles[]
     articlesCount   Int @default(0)
     hub Hub  @relation(fields: [hubId], references: [id])
@@ -76,22 +79,21 @@ model Comment {
     articleId   Int
     message String
     parentCommentId Int?
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @default(now())
+    parentComment   Comment?    @relation("SubComments", fields: [parentCommentId], references: [id])
+    subComments Comment[]   @relation("SubComments")
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @default(now())
 }
 
 enum VoteGrade {
-    EXCELLENT
-    SATISFACTORY
-    MECIOCRE
-    INSUFFICIENT
-    FAILURE
+    POSITIVE
+    NEGATIVE
 }
 
 model Vote {
     id  Int @default(autoincrement()) @id
     userId  Int
-    grade VoteGrade @default(SATISFACTORY)
+    grade VoteGrade
     article Article @relation(fields: [articleId], references: [id])
     articleId   Int
 }

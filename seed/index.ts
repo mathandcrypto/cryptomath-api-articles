@@ -1,8 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 import * as dotenv from 'dotenv';
-import { hubs } from './hubs';
-import { tags } from './tags';
-import { articles } from './articles';
+import { hubs } from './data/hubs';
+import { tags } from './data/tags';
+import { articles } from './data/articles';
+
+dotenv.config();
 
 const prisma = new PrismaClient();
 
@@ -55,8 +57,6 @@ async function seedArticles() {
 }
 
 async function main() {
-  dotenv.config();
-
   await seedHubs();
   await seedTags();
   await seedArticles();
