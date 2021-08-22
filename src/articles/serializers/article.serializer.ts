@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { BaseSerializerService } from '@common/serializers/base.serializer';
 import { Article } from '../interfaces/article.interface';
-import { Article as ArticleProto } from 'cryptomath-api-proto/types/articles';
+import { Article as ArticleProto } from '@cryptomath/cryptomath-api-proto/types/articles';
 import { HubSerializerService } from './hub.serializer';
 import { TagSerializerService } from './tag.serializer';
 import { getUnixTime } from 'date-fns';

@@ -1,4 +1,4 @@
-import { SortDirection } from 'cryptomath-api-proto/types/sorts';
+import { SortDirection } from '@cryptomath/cryptomath-api-proto/types/sorts';
 import { Prisma } from '@prisma/client';
 
 export const getOrderDirection = (

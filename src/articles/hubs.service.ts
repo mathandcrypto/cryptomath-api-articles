@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@providers/prisma/prisma.service';
 import { SearchService } from '@providers/rmq/search/search.service';
-import { HubsFilters, HubsSorts } from 'cryptomath-api-proto/types/articles';
+import { HubsFilters, HubsSorts } from '@cryptomath/cryptomath-api-proto/types/articles';
 import { Hub } from './interfaces/hub.interface';
 import { Prisma } from '@prisma/client';
 import { ArticlesConfigService } from '@config/articles/config.service';
-import { InsertDocumentResponse } from 'cryptomath-api-message-types';
+import { InsertDocumentResponse } from '@cryptomath/cryptomath-api-message-types';
 import { getNumericFilterCondition } from '@common/helpers/filters';
 import { getOrderDirection } from '@common/helpers/sorts';
 
@@ -144,6 +144,33 @@ export class HubsService {
     }
   }
 
+  async findSearchId(hubId: number): Promise<[boolean, string]> {
+    const [isHubExists, hub] = await this.findOne(hubId);
+
+    if (isHubExists && hub.searchId) {
+      return [true, hub.searchId];
+    }
+
+    return [false, ''];
+  }
+
+  async findFromList(hubsIds: number[]): Promise<[boolean, Hub[]]> {
+    try {
+      const hubs = await this.prisma.hub.findMany({
+        where: { id: { in: hubsIds } },
+        include: {
+          logo: true,
+        },
+      });
+
+      return [true, hubs];
+    } catch (error) {
+      this.logger.error(error);
+
+      return [false, []];
+    }
+  }
+
   async createHub(name: string, description: string): Promise<[boolean, Hub]> {
     try {
       const hub = await this.prisma.hub.create({
@@ -153,26 +180,45 @@ export class HubsService {
         },
       });
 
-      const insertDocumentObservable = this.searchService.insertHubDocument(
-        hub.id,
-        name,
-        description,
-      );
-
-      insertDocumentObservable.subscribe(
-        (response) => this.updateHubSearch(hub.id, response),
-        (error) => {
-          this.logger.error(
-            `Failed to create hub index. Hub id: ${hub.id}. Error: ${error}`,
-          );
-        },
-      );
+      this.searchService
+        .insertHubDocument(hub.id, name, description)
+        .subscribe({
+          next: (response) => this.updateHubSearch(hub.id, response),
+          error: (error) => {
+            this.logger.error(
+              `Failed to create hub index. Hub id: ${hub.id}. Error: ${error}`,
+            );
+          },
+        });
 
       return [true, hub];
     } catch (error) {
       this.logger.error(error);
 
       return [false, null];
+    }
+  }
+
+  async updateHubStats(hubId: number) {
+    try {
+      const [articlesCount, tagsCount] = await this.prisma.$transaction([
+        this.prisma.article.count({ where: { hubs: { some: { hubId } } } }),
+        this.prisma.tag.count({ where: { hubId } }),
+      ]);
+
+      await this.prisma.hub.update({
+        where: {
+          id: hubId,
+        },
+        data: {
+          articlesCount,
+          tagsCount,
+        },
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to update hub stats. Hub id: ${hubId}. Error message: ${error.message}`,
+      );
     }
   }
 
@@ -184,21 +230,21 @@ export class HubsService {
       this.logger.error(
         `Search index of the hub has not been created. Hub id: ${hubId}`,
       );
-    }
-
-    try {
-      await this.prisma.hub.update({
-        where: {
-          id: hubId,
-        },
-        data: {
-          searchId: documentId,
-        },
-      });
-    } catch (error) {
-      this.logger.error(
-        `Failed to update hub search id. Hub id: ${hubId}. Document id: ${documentId}. Error message: ${error.message}`,
-      );
+    } else {
+      try {
+        await this.prisma.hub.update({
+          where: {
+            id: hubId,
+          },
+          data: {
+            searchId: documentId,
+          },
+        });
+      } catch (error) {
+        this.logger.error(
+          `Failed to update hub search id. Hub id: ${hubId}. Document id: ${documentId}. Error message: ${error.message}`,
+        );
+      }
     }
   }
 }

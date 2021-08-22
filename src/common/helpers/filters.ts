@@ -1,9 +1,9 @@
 import { Prisma } from '@prisma/client';
 
 export const getNumericFilterCondition = (
-  equals: number | undefined,
-  min: number | undefined,
-  max: number | undefined,
+  equals?: number,
+  min?: number,
+  max?: number,
 ): Prisma.IntFilter => {
   if (equals) {
     return { equals };
@@ -16,8 +16,8 @@ export const getNumericFilterCondition = (
 };
 
 export const getDateTimeFilterCondition = (
-  start: Date | undefined,
-  end: Date | undefined,
+  start?: Date,
+  end?: Date,
 ): Prisma.DateTimeFilter => {
   return {
     ...(start && { gte: start }),

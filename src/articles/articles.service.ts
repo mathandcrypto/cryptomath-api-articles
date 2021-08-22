@@ -3,7 +3,7 @@ import { PrismaService } from '@providers/prisma/prisma.service';
 import {
   ArticlesFilters,
   ArticlesSorts,
-} from 'cryptomath-api-proto/types/articles';
+} from '@cryptomath/cryptomath-api-proto/types/articles';
 import { Article } from './interfaces/article.interface';
 import { Prisma } from '@prisma/client';
 import { ArticlesConfigService } from '@config/articles/config.service';

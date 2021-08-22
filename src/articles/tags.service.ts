@@ -1,11 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@providers/prisma/prisma.service';
-import { TagsFilters, TagsSorts } from 'cryptomath-api-proto/types/articles';
+import { TagsFilters, TagsSorts } from '@cryptomath/cryptomath-api-proto/types/articles';
 import { ArticlesConfigService } from '@config/articles/config.service';
 import { Prisma } from '@prisma/client';
 import { Tag } from './interfaces/tag.interface';
+import { SearchService } from '@providers/rmq/search/search.service';
 import { getNumericFilterCondition } from '@common/helpers/filters';
 import { getOrderDirection } from '@common/helpers/sorts';
+import { InsertDocumentResponse } from '@cryptomath/cryptomath-api-message-types';
+import { HubsService } from './hubs.service';
 
 @Injectable()
 export class TagsService {
@@ -14,6 +17,8 @@ export class TagsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly articlesConfigService: ArticlesConfigService,
+    private readonly searchService: SearchService,
+    private readonly hubsService: HubsService,
   ) {}
 
   protected getWhereInput(filters: TagsFilters): Prisma.TagWhereInput {
@@ -132,6 +137,118 @@ export class TagsService {
       this.logger.error(error);
 
       return [false, null];
+    }
+  }
+
+  async findFromList(tagsIds: number[]): Promise<[boolean, Tag[]]> {
+    try {
+      const tags = await this.prisma.tag.findMany({
+        where: { id: { in: tagsIds } },
+        include: {
+          hub: {
+            include: {
+              logo: true,
+            },
+          },
+        },
+      });
+
+      return [true, tags];
+    } catch (error) {
+      this.logger.error(error);
+
+      return [false, []];
+    }
+  }
+
+  async createTag(
+    hubId: number,
+    name: string,
+    description: string,
+  ): Promise<[boolean, Tag]> {
+    try {
+      const hub = await this.prisma.hub.findUnique({
+        where: { id: hubId },
+      });
+
+      if (!hub || !hub.searchId) {
+        return [false, null];
+      }
+
+      const tag = await this.prisma.tag.create({
+        data: {
+          hubId,
+          name,
+          description,
+        },
+        include: {
+          hub: true,
+        },
+      });
+
+      await this.hubsService.updateHubStats(hubId);
+
+      this.searchService
+        .insertTagDocument(tag.id, hub.id, hub.searchId, name, description)
+        .subscribe({
+          next: (response) => this.updateTagSearch(hubId, tag.id, response),
+          error: (error) => {
+            this.logger.error(
+              `Failed to create tag index. Tag id: ${tag.id}. Error: ${error}`,
+            );
+          },
+        });
+
+      return [true, tag];
+    } catch (error) {
+      this.logger.error(error);
+
+      return [false, null];
+    }
+  }
+
+  async updateTagSearch(
+    hubId: number,
+    tagId: number,
+    { isDocumentCreated, documentId }: InsertDocumentResponse,
+  ) {
+    if (!isDocumentCreated) {
+      this.logger.error(
+        `Search index of the tag has not been created. Tag id: ${tagId}`,
+      );
+    } else {
+      try {
+        const hub = await this.prisma.hub.findUnique({ where: { id: hubId } });
+
+        if (!hub || !hub.searchId) {
+          this.logger.error(
+            `Failed to update tag search id. Hub doesn't exists or invalid search id. Hub id: ${hubId}. Tag id: ${tagId}. Document id: ${documentId}`,
+          );
+        }
+
+        await this.prisma.tag.update({
+          where: {
+            id: tagId,
+          },
+          data: {
+            searchId: documentId,
+          },
+        });
+
+        this.searchService
+          .updateHubStats(hub.searchId, hub.articlesCount, hub.tagsCount)
+          .subscribe({
+            error: (error) => {
+              this.logger.error(
+                `Failed to update hub search stats. Document id: ${hub.searchId}. Error: ${error}`,
+              );
+            },
+          });
+      } catch (error) {
+        this.logger.error(
+          `Failed to update tag search id. Tag id: ${tagId}. Document id: ${documentId}. Error message: ${error.message}`,
+        );
+      }
     }
   }
 }

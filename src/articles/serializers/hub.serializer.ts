@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { BaseSerializerService } from '@common/serializers/base.serializer';
 import { Hub } from '../interfaces/hub.interface';
-import { Hub as HubProto } from 'cryptomath-api-proto/types/articles';
+import { Hub as HubProto } from '@cryptomath/cryptomath-api-proto/types/articles';
 import { HubLogoSerializerService } from './hub-logo.serializer';
 
 @Injectable()
