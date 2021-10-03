@@ -6,6 +6,12 @@ import {
   CreateHubResponse,
   FindHubRequest,
   FindHubResponse,
+  FindHubLogoRequest,
+  FindHubLogoResponse,
+  CreateHubLogoRequest,
+  CreateHubLogoResponse,
+  DeleteHubLogoRequest,
+  DeleteHubLogoResponse,
   FindHubsRequest,
   FindHubsResponse,
   FindHubsFromListRequest,
@@ -17,6 +23,7 @@ import {
 import { Hub } from './interfaces/hub.interface';
 import { HubsService } from './hubs.service';
 import { HubSerializerService } from './serializers/hub.serializer';
+import { HubLogoSerializerService } from './serializers/hub-logo.serializer';
 
 @Controller()
 @HubsServiceControllerMethods()
@@ -24,6 +31,7 @@ export class HubsController implements HubsServiceController {
   constructor(
     private readonly hubsService: HubsService,
     private readonly hubSerializerService: HubSerializerService,
+    private readonly hubLogoSerializerService: HubLogoSerializerService,
   ) {}
 
   async findHubs({
@@ -98,6 +106,86 @@ export class HubsController implements HubsServiceController {
     return {
       isHubExists: true,
       hub: await this.hubSerializerService.serialize(hub),
+    };
+  }
+
+  async findHubLogo({
+    hubId,
+  }: FindHubLogoRequest): Promise<FindHubLogoResponse> {
+    const [isLogoExists, logo] = await this.hubsService.findLogo(hubId);
+
+    if (!isLogoExists) {
+      return {
+        isLogoExists: false,
+        logo: null,
+      };
+    }
+
+    return {
+      isLogoExists: true,
+      logo: await this.hubLogoSerializerService.serialize(logo),
+    };
+  }
+
+  async createHubLogo({
+    hubId,
+    key,
+    url,
+  }: CreateHubLogoRequest): Promise<CreateHubLogoResponse> {
+    const [isLogoExists] = await this.hubsService.findLogo(hubId);
+
+    if (isLogoExists) {
+      return {
+        isLogoCreated: false,
+        isLogoAlreadyExists: true,
+        logo: null,
+      };
+    }
+
+    const [isLogoCreated, logoId] = await this.hubsService.createLogo(
+      hubId,
+      key,
+      url,
+    );
+
+    if (!isLogoCreated) {
+      return {
+        isLogoCreated: false,
+        isLogoAlreadyExists: false,
+        logo: null,
+      };
+    }
+
+    return {
+      isLogoCreated: true,
+      isLogoAlreadyExists: false,
+      logo: {
+        id: logoId,
+        key,
+        url,
+      },
+    };
+  }
+
+  async deleteHubLogo({
+    hubId,
+    logoId,
+  }: DeleteHubLogoRequest): Promise<DeleteHubLogoResponse> {
+    const [isLogoDeleted, logo] = await this.hubsService.deleteLogo(
+      hubId,
+      logoId,
+    );
+
+    if (!isLogoDeleted) {
+      return {
+        isLogoDeleted: false,
+        logo: null,
+      };
+    }
+
+    return {
+      isLogoDeleted: true,
+      logo: await this.hubLogoSerializerService.serialize(logo),
     };
   }
 

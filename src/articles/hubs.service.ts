@@ -1,9 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@providers/prisma/prisma.service';
 import { SearchService } from '@providers/rmq/search/search.service';
-import { HubsFilters, HubsSorts } from '@cryptomath/cryptomath-api-proto/types/articles';
+import {
+  HubsFilters,
+  HubsSorts,
+} from '@cryptomath/cryptomath-api-proto/types/articles';
 import { Hub } from './interfaces/hub.interface';
-import { Prisma } from '@prisma/client';
+import { Prisma, HubLogo } from '@prisma/client';
 import { ArticlesConfigService } from '@config/articles/config.service';
 import { InsertDocumentResponse } from '@cryptomath/cryptomath-api-message-types';
 import { getNumericFilterCondition } from '@common/helpers/filters';
@@ -137,6 +140,66 @@ export class HubsService {
       }
 
       return [true, hub];
+    } catch (error) {
+      this.logger.error(error);
+
+      return [false, null];
+    }
+  }
+
+  async findLogo(hubId: number): Promise<[boolean, HubLogo]> {
+    try {
+      const logo = await this.prisma.hubLogo.findFirst({ where: { hubId } });
+
+      if (!logo) {
+        return [false, null];
+      }
+
+      return [true, logo];
+    } catch (error) {
+      this.logger.error(error);
+
+      return [false, null];
+    }
+  }
+
+  async createLogo(
+    hubId: number,
+    key: string,
+    url: string,
+  ): Promise<[boolean, number]> {
+    try {
+      const logo = await this.prisma.hubLogo.create({
+        data: {
+          key,
+          url,
+          hubId,
+        },
+      });
+
+      return [true, logo.id];
+    } catch (error) {
+      this.logger.error(error);
+
+      return [false, -1];
+    }
+  }
+
+  async deleteLogo(hubId: number, logoId: number): Promise<[boolean, HubLogo]> {
+    try {
+      const logo = await this.prisma.hubLogo.findUnique({
+        where: { id: logoId },
+      });
+
+      if (!logo || logo.hubId !== hubId) {
+        return [false, null];
+      }
+
+      await this.prisma.hubLogo.delete({
+        where: { id: logoId },
+      });
+
+      return [true, logo];
     } catch (error) {
       this.logger.error(error);
 
