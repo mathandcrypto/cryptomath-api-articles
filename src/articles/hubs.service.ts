@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@providers/prisma/prisma.service';
 import { SearchService } from '@providers/rmq/search/search.service';
-import { HubsFilters, HubsSorts } from '@cryptomath/cryptomath-api-proto/types/articles';
+import {
+  HubsFilters,
+  HubsSorts,
+} from '@cryptomath/cryptomath-api-proto/types/articles';
 import { Hub } from './interfaces/hub.interface';
 import { Prisma } from '@prisma/client';
 import { ArticlesConfigService } from '@config/articles/config.service';
@@ -67,8 +70,10 @@ export class HubsService {
     return whereInput;
   }
 
-  protected getOrderByInput(sorts: HubsSorts): Prisma.HubOrderByInput[] {
-    const orderByInput = [] as Prisma.HubOrderByInput[];
+  protected getOrderByInput(
+    sorts: HubsSorts,
+  ): Prisma.HubOrderByWithRelationInput[] {
+    const orderByInput = [] as Prisma.HubOrderByWithRelationInput[];
 
     if (sorts.name) {
       const { direction: nameDirection } = sorts.name;

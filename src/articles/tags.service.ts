@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@providers/prisma/prisma.service';
-import { TagsFilters, TagsSorts } from '@cryptomath/cryptomath-api-proto/types/articles';
+import {
+  TagsFilters,
+  TagsSorts,
+} from '@cryptomath/cryptomath-api-proto/types/articles';
 import { ArticlesConfigService } from '@config/articles/config.service';
 import { Prisma } from '@prisma/client';
 import { Tag } from './interfaces/tag.interface';
@@ -59,8 +62,10 @@ export class TagsService {
     return whereInput;
   }
 
-  protected getOrderByInput(sorts: TagsSorts): Prisma.TagOrderByInput[] {
-    const orderByInput = [] as Prisma.TagOrderByInput[];
+  protected getOrderByInput(
+    sorts: TagsSorts,
+  ): Prisma.TagOrderByWithRelationInput[] {
+    const orderByInput = [] as Prisma.TagOrderByWithRelationInput[];
 
     if (sorts.name) {
       const { direction: nameDirection } = sorts.name;

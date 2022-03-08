@@ -98,8 +98,8 @@ export class ArticlesService {
 
   protected getOrderByInput(
     sorts: ArticlesSorts,
-  ): Prisma.ArticleOrderByInput[] {
-    const orderByInput = [] as Prisma.ArticleOrderByInput[];
+  ): Prisma.ArticleOrderByWithRelationInput[] {
+    const orderByInput = [] as Prisma.ArticleOrderByWithRelationInput[];
 
     if (sorts.title) {
       const { direction: titleDirection } = sorts.title;
